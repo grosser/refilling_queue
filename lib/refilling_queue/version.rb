@@ -1,3 +1,3 @@
-module RefillingQueue
+class RefillingQueue
   VERSION = '0.0.0'
 end
