@@ -47,8 +47,14 @@ class RefillingQueue
 
   def lock
     lock = "#{@name}_lock"
-    raise RefillingQueue::Locked unless @client.setnx lock, "1"
-    @client.expire lock, @options[:lock_timeout]
+
+    # transaction: prevent infinite lock when process dies immediately after setting lock
+    acquired, _ = @client.multi do
+      @client.setnx lock, "1"
+      @client.expire lock, @options[:lock_timeout]
+    end
+    raise RefillingQueue::Locked unless acquired
+
     begin
       yield
     ensure
