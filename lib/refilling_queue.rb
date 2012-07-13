@@ -1,7 +1,7 @@
 require 'refilling_queue/version'
 
 class RefillingQueue
-  class EmptyRefill < RuntimeError
+  class Locked < RuntimeError
   end
 
   DEFAULT_OPTIONS = {
@@ -16,20 +16,23 @@ class RefillingQueue
   end
 
   def pop
-    item = @client.lpop @name
+    item = _pop
     return item unless item.nil?
-
     refill
+    _pop
+  end
 
-    item = @client.lpop @name
-    return item unless item.nil?
+  private
 
-    raise RefillingQueue::EmptyRefill
+  def _pop
+    @client.lpop @name
   end
 
   def refill
     lock do
       results = @block.call
+      return if results.empty?
+
       @client.pipelined do
         @client.del @name
         results.each{ |r| @client.rpush @name, r } # TODO https://github.com/redis/redis-rb/issues/253
@@ -42,11 +45,9 @@ class RefillingQueue
     @client.llen(@name) == 0
   end
 
-  private
-
   def lock
     lock = "#{@name}_lock"
-    return unless @client.setnx lock, "1"
+    raise RefillingQueue::Locked unless @client.setnx lock, "1"
     @client.expire lock, @options[:lock_timeout]
     begin
       yield

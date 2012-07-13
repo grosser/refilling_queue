@@ -14,8 +14,8 @@ Usage
 
     begin
       queue.pop
-    rescue
-      RefillingQueue::EmptyRefill # queue was empty, refilled but is still empty
+    rescue RefillingQueue::Locked
+      # queue was empty, refilling failed because other process is already trying it
     end
 
     queue.pop -> return id
@@ -23,6 +23,8 @@ Usage
     queue.pop -> run block -> store new ids -> return id
     ... # 30 seconds elapsed (global expires_at stored in reque_client) ?
     queue.pop -> run block -> store new ids -> return id
+    ...
+    queue.pop -> run block -> empty result -> return nil
 
 Author
 ======

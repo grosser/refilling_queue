@@ -32,12 +32,9 @@ describe RefillingQueue do
       queue.pop.should == 3
     end
 
-    it "only tries to refill once / raises on empty refill" do
+    it "only tries to refill once" do
       calls = []
-      queue = RefillingQueue.new(client, "x"){ calls << 1; [] }
-      expect{
-        queue.pop
-      }.to raise_error(RefillingQueue::EmptyRefill)
+      RefillingQueue.new(client, "x"){ calls << 1; [] }.pop.should == nil
       calls.should == [1]
     end
 
@@ -67,14 +64,27 @@ describe RefillingQueue do
   context "with multiple actors" do
     it "only refills once" do
       called = []
+
+      # lock-blocker
       Thread.new do
         RefillingQueue.new(client, "x"){ sleep 0.2; called << 1; [] }.pop
       end
+      sleep 0.1
+
+      # blocked
+      locked = false
       Thread.new do
-        RefillingQueue.new(client, "x"){ sleep 0.2; called << 1; [] }.pop
+        queue = RefillingQueue.new(client, "x"){ sleep 0.2; called << 1; [] }
+        begin
+          queue.pop
+        rescue RefillingQueue::Locked
+          locked = true
+        end
       end
       sleep 0.3
+
       called.should == [1]
+      locked.should == true
     end
 
     it "can refill after refill is complete" do
