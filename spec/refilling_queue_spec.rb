@@ -67,23 +67,22 @@ describe RefillingQueue do
 
       # lock-blocker
       Thread.new do
-        RefillingQueue.new(client, "x"){ sleep 0.2; called << 1; [] }.pop
+        RefillingQueue.new(client, "x"){ called << 1; sleep 0.3; called << 2; [] }.pop
       end
       sleep 0.1
 
       # blocked
       locked = false
-      Thread.new do
-        queue = RefillingQueue.new(client, "x"){ sleep 0.2; called << 1; [] }
-        begin
-          queue.pop
-        rescue RefillingQueue::Locked
-          locked = true
-        end
+      queue = RefillingQueue.new(client, "x"){ called << 3; [] }
+      begin
+        queue.pop
+        fail
+      rescue RefillingQueue::Locked
+        locked = true
       end
-      sleep 0.3
+      sleep 0.2
 
-      called.should == [1]
+      called.should == [1, 2]
       locked.should == true
     end
 
