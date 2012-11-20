@@ -53,7 +53,7 @@ class RefillingQueue
       @client.setnx lock, "1"
       @client.expire lock, @options[:lock_timeout]
     end
-    raise RefillingQueue::Locked unless acquired
+    raise RefillingQueue::Locked unless [true, 1].include?(acquired)
 
     begin
       yield
