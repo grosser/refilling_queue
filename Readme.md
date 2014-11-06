@@ -31,4 +31,4 @@ Author
 [Michael Grosser](http://grosser.it)<br/>
 michael@grosser.it<br/>
 License: MIT<br/>
-[![Build Status](https://secure.travis-ci.org/grosser/refilling_queue.png)](http://travis-ci.org/grosser/refilling_queue)
+[![Build Status](https://secure.travis-ci.org/grosser/refilling_queue.png)](https://travis-ci.org/grosser/refilling_queue)
