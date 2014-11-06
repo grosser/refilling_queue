@@ -3,28 +3,32 @@ A queue that refreshes itself when it gets empty or stale, so you can keep poppi
 Install
 =======
 
-    gem install refilling_queue
+```Bash
+gem install refilling_queue
+```
 
 Usage
 =====
 
-    queue = RefillingQueue.new resque_client, "my_queue", :refresh_every => 30.seconds do
-      expensive_operation.map(&:id)
-    end
+```Ruby
+queue = RefillingQueue.new resque_client, "my_queue", :refresh_every => 30.seconds do
+  expensive_operation.map(&:id)
+end
 
-    begin
-      queue.pop
-    rescue RefillingQueue::Locked
-      # queue was empty, refilling failed because other process is already trying it
-    end
+begin
+  queue.pop
+rescue RefillingQueue::Locked
+  # queue was empty, refilling failed because other process is already trying it
+end
 
-    queue.pop -> return id
-    ... # queue empty ?
-    queue.pop -> run block -> store new ids -> return id
-    ... # 30 seconds elapsed (global expires_at stored in reque_client) ?
-    queue.pop -> run block -> store new ids -> return id
-    ...
-    queue.pop -> run block -> empty result -> return nil
+queue.pop -> return id
+... # queue empty ?
+queue.pop -> run block -> store new ids -> return id
+... # 30 seconds elapsed (global expires_at stored in reque_client) ?
+queue.pop -> run block -> store new ids -> return id
+...
+queue.pop -> run block -> empty result -> return nil
+```
 
 Author
 ======
