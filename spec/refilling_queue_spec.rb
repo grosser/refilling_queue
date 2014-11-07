@@ -109,4 +109,29 @@ describe RefillingQueue do
       called.should == [1,3]
     end
   end
+
+  context "with pagination" do
+    it "refills itself page per page" do
+      called = 0
+      pages = [[1,2], [3,4], []]
+      queue = RefillingQueue.new(client, "x"){|page| called += 1; pages[page - 1] }
+      queue.pop.should == "1"
+      queue.pop.should == "2"
+      queue.pop.should == "3"
+      queue.pop.should == "4"
+      queue.pop.should == nil
+      queue.pop.should == "1"
+      called.should == 4
+    end
+
+    it "starts over after clear" do
+      pages = [[1,2], [3,4], []]
+      queue = RefillingQueue.new(client, "x"){|page| pages[page - 1] }
+      queue.pop.should == "1"
+      queue.pop.should == "2"
+      queue.pop.should == "3"
+      queue.clear
+      queue.pop.should == "1"
+    end
+  end
 end
