@@ -6,7 +6,8 @@ class RefillingQueue
 
   DEFAULT_OPTIONS = {
     :lock_timeout => 60,
-    :refresh_every => nil
+    :refresh_every => nil,
+    :paginate => false
   }
 
   def initialize(client, name, options={}, &block)
@@ -32,6 +33,10 @@ class RefillingQueue
 
   private
 
+  def paginate?
+    @options[:paginate]
+  end
+
   def _pop
     @client.lpop @name
   end
@@ -43,8 +48,12 @@ class RefillingQueue
   end
 
   def _refill
-    page = (@client.get(@page_name) || 0).to_i
-    results = @block.call(page + 1)
+    results = if paginate?
+      page = (@client.get(@page_name) || 0).to_i
+      @block.call(page + 1)
+    else
+      @block.call
+    end
     if results.empty?
       mark_as_empty
       return
@@ -54,8 +63,10 @@ class RefillingQueue
       @client.del @name
       @client.rpush @name, results
       @client.expire @name, @options[:refresh_every] if @options[:refresh_every]
-      @client.incr @page_name
-      @client.expire @page_name, @options[:refresh_every] if @options[:refresh_every]
+      if paginate?
+        @client.incr @page_name
+        @client.expire @page_name, @options[:refresh_every] if @options[:refresh_every]
+      end
     end
   end
 
@@ -64,7 +75,7 @@ class RefillingQueue
   end
 
   def mark_as_empty
-    @client.del @page_name
+    @client.del @page_name if paginate?
   end
 
   def lock

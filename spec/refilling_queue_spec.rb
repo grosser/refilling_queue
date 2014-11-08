@@ -114,7 +114,7 @@ describe RefillingQueue do
     it "refills itself page per page" do
       called = 0
       pages = [[1,2], [3,4], []]
-      queue = RefillingQueue.new(client, "x"){|page| called += 1; pages[page - 1] }
+      queue = RefillingQueue.new(client, "x", :paginate => true){|page| called += 1; pages[page - 1] }
       queue.pop.should == "1"
       queue.pop.should == "2"
       queue.pop.should == "3"
@@ -126,7 +126,7 @@ describe RefillingQueue do
 
     it "starts over after clear" do
       pages = [[1,2], [3,4], []]
-      queue = RefillingQueue.new(client, "x"){|page| pages[page - 1] }
+      queue = RefillingQueue.new(client, "x", :paginate => true){|page| pages[page - 1] }
       queue.pop.should == "1"
       queue.pop.should == "2"
       queue.pop.should == "3"

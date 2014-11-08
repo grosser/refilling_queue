@@ -11,7 +11,7 @@ Usage
 =====
 
 ```Ruby
-queue = RefillingQueue.new resque_client, "my_queue", :refresh_every => 30.seconds do
+queue = RefillingQueue.new redis_client, "my_queue", refresh_every: 30.seconds do
   expensive_operation.map(&:id)
 end
 
@@ -28,6 +28,14 @@ queue.pop -> run block -> store new ids -> return id
 queue.pop -> run block -> store new ids -> return id
 ...
 queue.pop -> run block -> empty result -> return nil
+```
+
+### Pagination
+```
+queue = RefillingQueue.new redis_client, "my_queue", refresh_every: 30.seconds, paginate: true do |page|
+  expensive_operation(:page => page).map(&:id)
+end
+
 ```
 
 Author
