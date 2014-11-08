@@ -11,6 +11,7 @@ class RefillingQueue
 
   def initialize(client, name, options={}, &block)
     @client, @name, @block = client, name, block
+    @page_name = name + "/page"
     @options = DEFAULT_OPTIONS.merge(options)
     raise "Invalid keys" if (options.keys - DEFAULT_OPTIONS.keys).any?
   end
@@ -22,6 +23,13 @@ class RefillingQueue
     _pop
   end
 
+  def clear
+    lock do
+      mark_as_empty
+      _refill
+    end
+  end
+
   private
 
   def _pop
@@ -30,19 +38,33 @@ class RefillingQueue
 
   def refill
     lock do
-      results = @block.call
-      return if results.empty?
+      _refill
+    end
+  end
 
-      @client.pipelined do
-        @client.del @name
-        results.each{ |r| @client.rpush @name, r } # TODO https://github.com/redis/redis-rb/issues/253
-        @client.expire @name, @options[:refresh_every] if @options[:refresh_every]
-      end
+  def _refill
+    page = (@client.get(@page_name) || 0).to_i
+    results = @block.call(page + 1)
+    if results.empty?
+      mark_as_empty
+      return
+    end
+
+    @client.pipelined do
+      @client.del @name
+      @client.rpush @name, results
+      @client.expire @name, @options[:refresh_every] if @options[:refresh_every]
+      @client.incr @page_name
+      @client.expire @page_name, @options[:refresh_every] if @options[:refresh_every]
     end
   end
 
   def empty?
     @client.llen(@name) == 0
+  end
+
+  def mark_as_empty
+    @client.del @page_name
   end
 
   def lock
