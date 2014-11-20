@@ -27,7 +27,7 @@ class RefillingQueue
   def clear
     lock do
       mark_as_empty
-      _refill
+      @client.del @name
     end
   end
 
